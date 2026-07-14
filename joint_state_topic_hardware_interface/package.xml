@@ -21,18 +21,18 @@
   <url type="repository">https://github.com/ros-controlsros-controls/topic_based_hardware_interfaces</url>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <build_depend>ros2_control_cmake</build_depend>
 
   <depend>angles</depend>
   <depend>rclcpp</depend>
   <depend>hardware_interface</depend>
-  <depend>sensor_msgs</depend>
   <depend>pluginlib</depend>
-  <depend>rclcpp_lifecycle</depend>
+  <depend>sensor_msgs</depend>
+  <depend>urdf</depend>
 
   <test_depend>ament_cmake_gmock</test_depend>
   <test_depend>ament_cmake_ros</test_depend>
   <test_depend>control_msgs</test_depend>
+  <test_depend>rclcpp_action</test_depend>
   <test_depend>controller_manager</test_depend>
   <test_depend>forward_command_controller</test_depend>
   <test_depend>joint_state_broadcaster</test_depend>
@@ -43,6 +43,7 @@
   <test_depend>launch</test_depend>
   <test_depend>rclpy</test_depend>
   <test_depend>robot_state_publisher</test_depend>
+  <test_depend>std_msgs</test_depend>
   <test_depend>ros2_control_test_assets</test_depend>
   <test_depend>topic_tools</test_depend>
   <test_depend>xacro</test_depend>

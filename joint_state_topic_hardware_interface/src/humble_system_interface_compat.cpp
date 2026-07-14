@@ -1,16 +1,16 @@
 // Copyright 2026
 // Licensed under the Apache License, Version 2.0
 
-#include <joint_state_topic_hardware_interface/humble_system_interface_compat.hpp>
+#include "joint_state_topic_hardware_interface/humble_system_interface_compat.hpp"
 
 #include <algorithm>
 #include <cctype>
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
 
-#include <rclcpp/rclcpp.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "urdf/model.h"
 
 namespace joint_state_topic_hardware_interface
 {
@@ -20,10 +20,12 @@ HumbleSystemInterfaceCompat::~HumbleSystemInterfaceCompat()
   stop_executor();
 }
 
-HumbleSystemInterfaceCompat::CallbackReturn HumbleSystemInterfaceCompat::on_init(
+HumbleSystemInterfaceCompat::CallbackReturn
+HumbleSystemInterfaceCompat::on_init(
   const hardware_interface::HardwareInfo & info)
 {
-  if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
+  if (hardware_interface::SystemInterface::on_init(info) !=
+    CallbackReturn::SUCCESS)
   {
     return CallbackReturn::ERROR;
   }
@@ -34,7 +36,9 @@ HumbleSystemInterfaceCompat::CallbackReturn HumbleSystemInterfaceCompat::on_init
     initialize_interface_storage(info);
 
     std::string node_namespace;
-    const auto namespace_it = info.hardware_parameters.find("node_namespace");
+    const auto namespace_it =
+      info.hardware_parameters.find("node_namespace");
+
     if (namespace_it != info.hardware_parameters.end())
     {
       node_namespace = namespace_it->second;
@@ -43,17 +47,22 @@ HumbleSystemInterfaceCompat::CallbackReturn HumbleSystemInterfaceCompat::on_init
     rclcpp::NodeOptions node_options;
     node_options.use_global_arguments(false);
 
-    const auto node_name = sanitize_node_name(info.name + "_hardware_compat");
-    node_ = std::make_shared<rclcpp::Node>(node_name, node_namespace, node_options);
+    node_ = std::make_shared<rclcpp::Node>(
+      sanitize_node_name(info.name + "_hardware_compat"),
+      node_namespace,
+      node_options);
 
     start_executor();
   }
   catch (const std::exception & error)
   {
     RCLCPP_ERROR(
-      rclcpp::get_logger("humble_system_interface_compat"),
-      "Failed to initialize hardware compatibility wrapper '%s': %s",
-      info.name.c_str(), error.what());
+      rclcpp::get_logger(
+        "joint_state_humble_system_interface_compat"),
+      "Failed to initialize compatibility wrapper '%s': %s",
+      info.name.c_str(),
+      error.what());
+
     stop_executor();
     return CallbackReturn::ERROR;
   }
@@ -71,20 +80,28 @@ HumbleSystemInterfaceCompat::export_state_interfaces()
   {
     interface_count += joint.state_interfaces.size();
   }
+
   interfaces.reserve(interface_count);
 
   for (const auto & joint : info_.joints)
   {
     for (const auto & interface : joint.state_interfaces)
     {
-      const auto full_name = make_interface_name(joint.name, interface.name);
+      const auto full_name =
+        make_interface_name(joint.name, interface.name);
+
       auto value_it = state_values_.find(full_name);
       if (value_it == state_values_.end())
       {
-        throw std::runtime_error("Missing state interface storage for '" + full_name + "'");
+        throw std::runtime_error(
+                "Missing state interface storage for '" +
+                full_name + "'");
       }
 
-      interfaces.emplace_back(joint.name, interface.name, &value_it->second);
+      interfaces.emplace_back(
+        joint.name,
+        interface.name,
+        &value_it->second);
     }
   }
 
@@ -101,20 +118,28 @@ HumbleSystemInterfaceCompat::export_command_interfaces()
   {
     interface_count += joint.command_interfaces.size();
   }
+
   interfaces.reserve(interface_count);
 
   for (const auto & joint : info_.joints)
   {
     for (const auto & interface : joint.command_interfaces)
     {
-      const auto full_name = make_interface_name(joint.name, interface.name);
+      const auto full_name =
+        make_interface_name(joint.name, interface.name);
+
       auto value_it = command_values_.find(full_name);
       if (value_it == command_values_.end())
       {
-        throw std::runtime_error("Missing command interface storage for '" + full_name + "'");
+        throw std::runtime_error(
+                "Missing command interface storage for '" +
+                full_name + "'");
       }
 
-      interfaces.emplace_back(joint.name, interface.name, &value_it->second);
+      interfaces.emplace_back(
+        joint.name,
+        interface.name,
+        &value_it->second);
     }
   }
 
@@ -127,39 +152,48 @@ HumbleSystemInterfaceCompat::get_hardware_info() const noexcept
   return compat_info_;
 }
 
-rclcpp::Node::SharedPtr HumbleSystemInterfaceCompat::get_node() const noexcept
+rclcpp::Node::SharedPtr
+HumbleSystemInterfaceCompat::get_node() const noexcept
 {
   return node_;
 }
 
-bool HumbleSystemInterfaceCompat::has_state(const std::string & interface_name) const noexcept
+bool HumbleSystemInterfaceCompat::has_state(
+  const std::string & interface_name) const noexcept
 {
-  return state_values_.find(interface_name) != state_values_.end();
+  return state_values_.find(interface_name) !=
+         state_values_.end();
 }
 
-double HumbleSystemInterfaceCompat::get_state(const std::string & interface_name) const
+double HumbleSystemInterfaceCompat::get_state(
+  const std::string & interface_name) const
 {
   return state_values_.at(interface_name);
 }
 
 void HumbleSystemInterfaceCompat::set_state(
-  const std::string & interface_name, const double value)
+  const std::string & interface_name,
+  const double value)
 {
   state_values_.at(interface_name) = value;
 }
 
-bool HumbleSystemInterfaceCompat::has_command(const std::string & interface_name) const noexcept
+bool HumbleSystemInterfaceCompat::has_command(
+  const std::string & interface_name) const noexcept
 {
-  return command_values_.find(interface_name) != command_values_.end();
+  return command_values_.find(interface_name) !=
+         command_values_.end();
 }
 
-double HumbleSystemInterfaceCompat::get_command(const std::string & interface_name) const
+double HumbleSystemInterfaceCompat::get_command(
+  const std::string & interface_name) const
 {
   return command_values_.at(interface_name);
 }
 
 void HumbleSystemInterfaceCompat::set_command(
-  const std::string & interface_name, const double value)
+  const std::string & interface_name,
+  const double value)
 {
   command_values_.at(interface_name) = value;
 }
@@ -170,20 +204,25 @@ void HumbleSystemInterfaceCompat::shutdown_compat_node() noexcept
 }
 
 std::string HumbleSystemInterfaceCompat::make_interface_name(
-  const std::string & component_name, const std::string & interface_name)
+  const std::string & component_name,
+  const std::string & interface_name)
 {
   return component_name + "/" + interface_name;
 }
 
-std::string HumbleSystemInterfaceCompat::sanitize_node_name(const std::string & value)
+std::string HumbleSystemInterfaceCompat::sanitize_node_name(
+  const std::string & value)
 {
   std::string result;
   result.reserve(value.size() + 1);
 
-  for (const auto character : value)
+  for (const char character : value)
   {
-    const auto unsigned_character = static_cast<unsigned char>(character);
-    if (std::isalnum(unsigned_character) != 0 || character == '_')
+    const auto unsigned_character =
+      static_cast<unsigned char>(character);
+
+    if (std::isalnum(unsigned_character) != 0 ||
+      character == '_')
     {
       result.push_back(character);
     }
@@ -195,9 +234,11 @@ std::string HumbleSystemInterfaceCompat::sanitize_node_name(const std::string & 
 
   if (result.empty())
   {
-    result = "hardware_compat";
+    result = "joint_state_hardware_compat";
   }
-  else if (std::isdigit(static_cast<unsigned char>(result.front())) != 0)
+  else if (
+    std::isdigit(
+      static_cast<unsigned char>(result.front())) != 0)
   {
     result.insert(result.begin(), '_');
   }
@@ -205,7 +246,7 @@ std::string HumbleSystemInterfaceCompat::sanitize_node_name(const std::string & 
   return result;
 }
 
-double HumbleSystemInterfaceCompat::initial_interface_value(
+double HumbleSystemInterfaceCompat::initial_state_value(
   const hardware_interface::InterfaceInfo & interface)
 {
   if (interface.initial_value.empty())
@@ -221,51 +262,118 @@ void HumbleSystemInterfaceCompat::build_compat_hardware_info(
 {
   compat_info_.name = info.name;
   compat_info_.type = info.type;
-  compat_info_.hardware_plugin_name = info.hardware_class_type;
-  compat_info_.hardware_parameters = info.hardware_parameters;
+  compat_info_.hardware_plugin_name =
+    info.hardware_class_type;
+  compat_info_.hardware_parameters =
+    info.hardware_parameters;
   compat_info_.joints = info.joints;
   compat_info_.mimic_joints.clear();
 
-  for (std::size_t joint_index = 0; joint_index < info.joints.size(); ++joint_index)
+  // Newer ros2_control provides mimic metadata directly. Humble does not.
+  // Recover it from the complete original URDF retained in HardwareInfo.
+  urdf::Model robot_model;
+  const bool urdf_loaded =
+    !info.original_xml.empty() &&
+    robot_model.initString(info.original_xml);
+
+  for (std::size_t joint_index = 0;
+    joint_index < info.joints.size();
+    ++joint_index)
   {
     const auto & joint = info.joints[joint_index];
-    const auto mimic_it = joint.parameters.find("mimic");
-    if (mimic_it == joint.parameters.end())
+
+    bool mimic_found = false;
+    std::string mimicked_joint_name;
+    double multiplier = 1.0;
+    double offset = 0.0;
+
+    if (urdf_loaded)
     {
-      continue;
+      const auto urdf_joint =
+        robot_model.getJoint(joint.name);
+
+      if (urdf_joint && urdf_joint->mimic)
+      {
+        mimic_found = true;
+        mimicked_joint_name =
+          urdf_joint->mimic->joint_name;
+        multiplier = urdf_joint->mimic->multiplier;
+        offset = urdf_joint->mimic->offset;
+      }
     }
 
-    const auto mimicked_joint_it = std::find_if(
-      info.joints.begin(), info.joints.end(),
-      [&mimic_it](const hardware_interface::ComponentInfo & candidate) {
-        return candidate.name == mimic_it->second;
-      });
+    // Also support the package's documented ros2_control per-joint
+    // parameters. These take precedence over the regular URDF mimic tag.
+    const auto mimic_it =
+      joint.parameters.find("mimic");
 
-    if (mimicked_joint_it == info.joints.end())
+    if (mimic_it != joint.parameters.end())
     {
-      throw std::runtime_error(
-        "Mimicked joint '" + mimic_it->second + "' for joint '" + joint.name + "' was not found");
+      mimic_found = true;
+      mimicked_joint_name = mimic_it->second;
+
+      const auto multiplier_it =
+        joint.parameters.find("multiplier");
+
+      if (multiplier_it != joint.parameters.end())
+      {
+        multiplier = std::stod(multiplier_it->second);
+      }
+
+      const auto offset_it =
+        joint.parameters.find("offset");
+
+      if (offset_it != joint.parameters.end())
+      {
+        offset = std::stod(offset_it->second);
+      }
     }
 
-    MimicJoint mimic_joint;
-    mimic_joint.joint_index = joint_index;
-    mimic_joint.mimicked_joint_index = static_cast<std::size_t>(
-      std::distance(info.joints.begin(), mimicked_joint_it));
-
-    const auto multiplier_it = joint.parameters.find("multiplier");
-    if (multiplier_it != joint.parameters.end())
+    if (mimic_found)
     {
-      mimic_joint.multiplier = std::stod(multiplier_it->second);
+      add_mimic_joint(
+        joint_index,
+        mimicked_joint_name,
+        multiplier,
+        offset);
     }
-
-    const auto offset_it = joint.parameters.find("offset");
-    if (offset_it != joint.parameters.end())
-    {
-      mimic_joint.offset = std::stod(offset_it->second);
-    }
-
-    compat_info_.mimic_joints.push_back(mimic_joint);
   }
+}
+
+void HumbleSystemInterfaceCompat::add_mimic_joint(
+  const std::size_t joint_index,
+  const std::string & mimicked_joint_name,
+  const double multiplier,
+  const double offset)
+{
+  const auto mimicked_joint_it = std::find_if(
+    compat_info_.joints.begin(),
+    compat_info_.joints.end(),
+    [&mimicked_joint_name](
+      const hardware_interface::ComponentInfo & candidate)
+    {
+      return candidate.name == mimicked_joint_name;
+    });
+
+  if (mimicked_joint_it == compat_info_.joints.end())
+  {
+    throw std::runtime_error(
+            "Mimicked joint '" + mimicked_joint_name +
+            "' was not found in ros2_control hardware '" +
+            compat_info_.name + "'");
+  }
+
+  hardware_interface::MimicJoint mimic_joint;
+  mimic_joint.joint_index = joint_index;
+  mimic_joint.mimicked_joint_index =
+    static_cast<std::size_t>(
+    std::distance(
+      compat_info_.joints.begin(),
+      mimicked_joint_it));
+  mimic_joint.multiplier = multiplier;
+  mimic_joint.offset = offset;
+
+  compat_info_.mimic_joints.push_back(mimic_joint);
 }
 
 void HumbleSystemInterfaceCompat::initialize_interface_storage(
@@ -278,23 +386,37 @@ void HumbleSystemInterfaceCompat::initialize_interface_storage(
   {
     for (const auto & interface : joint.state_interfaces)
     {
-      const auto full_name = make_interface_name(joint.name, interface.name);
-      const auto inserted = state_values_.emplace(full_name, initial_interface_value(interface));
+      const auto full_name =
+        make_interface_name(joint.name, interface.name);
+
+      const auto inserted = state_values_.emplace(
+        full_name,
+        initial_state_value(interface));
+
       if (!inserted.second)
       {
-        throw std::runtime_error("Duplicate state interface '" + full_name + "'");
+        throw std::runtime_error(
+                "Duplicate state interface '" +
+                full_name + "'");
       }
     }
 
     for (const auto & interface : joint.command_interfaces)
     {
-      const auto full_name = make_interface_name(joint.name, interface.name);
+      const auto full_name =
+        make_interface_name(joint.name, interface.name);
+
+      // Match ros2_control initialization behavior: command interfaces begin
+      // unset, even when the related state interface has an initial value.
       const auto inserted = command_values_.emplace(
-        full_name, initial_interface_value(interface));
+        full_name,
+        std::numeric_limits<double>::quiet_NaN());
 
       if (!inserted.second)
       {
-        throw std::runtime_error("Duplicate command interface '" + full_name + "'");
+        throw std::runtime_error(
+                "Duplicate command interface '" +
+                full_name + "'");
       }
     }
   }
@@ -304,24 +426,32 @@ void HumbleSystemInterfaceCompat::start_executor()
 {
   if (!node_)
   {
-    throw std::runtime_error("Cannot start executor without an internal node");
+    throw std::runtime_error(
+            "Cannot start executor without an internal node");
   }
 
-  executor_ = std::make_unique<rclcpp::executors::SingleThreadedExecutor>();
+  executor_ =
+    std::make_unique<
+    rclcpp::executors::SingleThreadedExecutor>();
+
   executor_->add_node(node_);
 
-  executor_thread_ = std::thread([this]() {
-    try
+  executor_thread_ = std::thread(
+    [this]()
     {
-      executor_->spin();
-    }
-    catch (const std::exception & error)
-    {
-      RCLCPP_ERROR(
-        rclcpp::get_logger("humble_system_interface_compat"),
-        "Internal hardware executor stopped with an exception: %s", error.what());
-    }
-  });
+      try
+      {
+        executor_->spin();
+      }
+      catch (const std::exception & error)
+      {
+        RCLCPP_ERROR(
+          rclcpp::get_logger(
+            "joint_state_humble_system_interface_compat"),
+          "Internal hardware executor stopped: %s",
+          error.what());
+      }
+    });
 }
 
 void HumbleSystemInterfaceCompat::stop_executor() noexcept
@@ -344,7 +474,7 @@ void HumbleSystemInterfaceCompat::stop_executor() noexcept
     }
     catch (...)
     {
-      // Destructors must not throw. The executor is already stopped.
+      // Destruction must not throw.
     }
   }
 
