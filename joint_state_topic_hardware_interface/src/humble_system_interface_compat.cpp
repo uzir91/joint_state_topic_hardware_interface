@@ -48,7 +48,7 @@ HumbleSystemInterfaceCompat::on_init(
     node_options.use_global_arguments(false);
 
     node_ = std::make_shared<rclcpp::Node>(
-      sanitize_node_name(info.name + "_hardware_compat"),
+      sanitize_node_name(info.name + "_hardware"),
       node_namespace,
       node_options);
 
